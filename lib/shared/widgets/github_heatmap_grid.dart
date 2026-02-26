@@ -62,8 +62,8 @@ class GithubHeatmapGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final startOfYear = DateTime(now.year, 1, 1);
-    final todayDate = today();
-    final days = dateRange(startOfYear, todayDate);
+    final endOfYear = DateTime(now.year, 12, 31);
+    final days = dateRange(startOfYear, endOfYear);
 
     final entries = days
         .where((d) => completedDateKeys.contains(toDateKey(d)))
@@ -75,10 +75,10 @@ class GithubHeatmapGrid extends StatelessWidget {
       child: ContributionHeatmap(
         entries: entries,
         minDate: startOfYear,
-        maxDate: todayDate,
+        maxDate: endOfYear,
         cellSize: cellSize,
         cellSpacing: spacing,
-        weekdayLabel: WeekdayLabel.githubLike,
+        weekdayLabel: WeekdayLabel.full,
         heatmapColor: _hexToHeatmapColor(habitColorHex),
         onCellTap: (date, value) => onDayTap(date),
       ),

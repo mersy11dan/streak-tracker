@@ -106,7 +106,17 @@ class _HabitCard extends ConsumerStatefulWidget {
 }
 
 class _HabitCardState extends ConsumerState<_HabitCard> {
-  bool _expanded = false;
+  int? _prevStreak;
+  bool _justIncreased = false;
+
+  @override
+  void didUpdateWidget(covariant _HabitCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.habit.currentStreak > (oldWidget.habit.currentStreak)) {
+      _prevStreak = oldWidget.habit.currentStreak;
+      _justIncreased = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,95 +128,96 @@ class _HabitCardState extends ConsumerState<_HabitCard> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () => setState(() => _expanded = !_expanded),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          habit.title,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            _StreakChip(
-                              label: '${habit.currentStreak} day streak',
-                              color: color,
-                            ),
-                            if (habit.freezeTokensRemaining > 0) ...[
-                              const SizedBox(width: 8),
-                              _StreakChip(
-                                label: '${habit.freezeTokensRemaining} freeze',
-                                color: Colors.amber,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    onSelected: (v) => _onMenuSelected(context, v),
-                    itemBuilder: (ctx) => [
-                      const PopupMenuItem(value: 'archive', child: Text('Archive habit')),
-                      const PopupMenuItem(value: 'delete', child: Text('Delete habit')),
-                    ],
-                    child: const Icon(Icons.more_vert),
-                  ),
-                  IconButton(
-                    icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
-                    onPressed: () => setState(() => _expanded = !_expanded),
-                  ),
-                ],
-              ),
-              if (_expanded) ...[
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: isTodayDone
-                            ? null
-                            : () => _checkInToday(context),
-                        icon: Icon(isTodayDone ? Icons.check_circle : Icons.check_circle_outline),
-                        label: Text(isTodayDone ? 'Done today' : 'Mark done'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: isTodayDone ? Colors.green : color,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-                const SizedBox(height: 16),
-                GithubHeatmapGrid(
-                  completedDateKeys: completedKeys,
-                  habitColorHex: habit.colorHex,
-                  onDayTap: (d) => _onDayTap(context, d),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        habit.title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          _StreakFire(
+                            streak: habit.currentStreak,
+                            isTodayDone: isTodayDone,
+                            justIncreased: _justIncreased,
+                            onAnimationComplete: () =>
+                                setState(() => _justIncreased = false),
+                          ),
+                          if (habit.freezeTokensRemaining > 0) ...[
+                            const SizedBox(width: 8),
+                            _StreakChip(
+                              label: '${habit.freezeTokensRemaining} freeze',
+                              color: Colors.amber,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (v) => _onMenuSelected(context, v),
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(value: 'archive', child: Text('Archive habit')),
+                    const PopupMenuItem(value: 'delete', child: Text('Delete habit')),
+                  ],
+                  child: const Icon(Icons.more_vert),
                 ),
               ],
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            CheckboxListTile(
+              value: isTodayDone,
+              onChanged: isTodayDone
+                  ? (v) => _uncheckToday(context)
+                  : (v) => _checkInToday(context),
+              controlAffinity: ListTileControlAffinity.leading,
+              title: Text(
+                'Done today',
+                style: TextStyle(
+                  decoration: isTodayDone ? TextDecoration.lineThrough : null,
+                  color: isTodayDone
+                      ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)
+                      : null,
+                ),
+              ),
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+            ),
+            const SizedBox(height: 16),
+            GithubHeatmapGrid(
+              completedDateKeys: completedKeys,
+              habitColorHex: habit.colorHex,
+              onDayTap: (d) => _onDayTap(context, d),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _uncheckToday(BuildContext context) async {
+    await widget.habitService.uncheckIn(widget.habit.habitId, today());
+    if (mounted) setState(() {});
   }
 
   Future<void> _checkInToday(BuildContext context) async {
@@ -269,6 +280,100 @@ class _HabitCardState extends ConsumerState<_HabitCard> {
   Color _hexToColor(String hex) {
     hex = hex.replaceAll('#', '');
     return Color(int.parse('FF$hex', radix: 16));
+  }
+}
+
+class _StreakFire extends StatefulWidget {
+  const _StreakFire({
+    required this.streak,
+    required this.isTodayDone,
+    required this.justIncreased,
+    required this.onAnimationComplete,
+  });
+
+  final int streak;
+  final bool isTodayDone;
+  final bool justIncreased;
+  final VoidCallback onAnimationComplete;
+
+  @override
+  State<_StreakFire> createState() => _StreakFireState();
+}
+
+class _StreakFireState extends State<_StreakFire>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.4)
+        .chain(CurveTween(curve: Curves.elasticOut))
+        .animate(_controller);
+  }
+
+  @override
+  void didUpdateWidget(covariant _StreakFire oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.justIncreased && !_controller.isAnimating) {
+      _controller.forward().then((_) {
+        _controller.reverse();
+        widget.onAnimationComplete();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isActive = widget.streak > 0 && widget.isTodayDone;
+    final fireColor = isActive ? Colors.orange : Colors.grey;
+
+    return AnimatedBuilder(
+      animation: _scaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: fireColor.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.local_fire_department,
+              size: 18,
+              color: fireColor,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '${widget.streak} day streak',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: fireColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
