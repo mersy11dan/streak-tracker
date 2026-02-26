@@ -47,14 +47,12 @@ class GithubHeatmapGrid extends StatelessWidget {
     super.key,
     required this.completedDateKeys,
     required this.habitColorHex,
-    required this.onDayTap,
     this.cellSize = 12,
     this.spacing = 3,
   });
 
   final Set<String> completedDateKeys;
   final String habitColorHex;
-  final void Function(DateTime date) onDayTap;
   final double cellSize;
   final double spacing;
 
@@ -80,7 +78,6 @@ class GithubHeatmapGrid extends StatelessWidget {
         cellSpacing: spacing,
         weekdayLabel: WeekdayLabel.full,
         heatmapColor: _hexToHeatmapColor(habitColorHex),
-        onCellTap: (date, value) => onDayTap(date),
       ),
     );
   }

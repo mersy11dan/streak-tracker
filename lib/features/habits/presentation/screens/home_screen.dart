@@ -106,17 +106,7 @@ class _HabitCard extends ConsumerStatefulWidget {
 }
 
 class _HabitCardState extends ConsumerState<_HabitCard> {
-  int? _prevStreak;
   bool _justIncreased = false;
-
-  @override
-  void didUpdateWidget(covariant _HabitCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.habit.currentStreak > (oldWidget.habit.currentStreak)) {
-      _prevStreak = oldWidget.habit.currentStreak;
-      _justIncreased = true;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -207,7 +197,6 @@ class _HabitCardState extends ConsumerState<_HabitCard> {
             GithubHeatmapGrid(
               completedDateKeys: completedKeys,
               habitColorHex: habit.colorHex,
-              onDayTap: (d) => _onDayTap(context, d),
             ),
           ],
         ),
@@ -221,8 +210,15 @@ class _HabitCardState extends ConsumerState<_HabitCard> {
   }
 
   Future<void> _checkInToday(BuildContext context) async {
+    final prevStreak = widget.habit.currentStreak;
     await widget.habitService.checkIn(widget.habit.habitId, today());
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {
+        if (widget.habit.currentStreak > prevStreak) {
+          _justIncreased = true;
+        }
+      });
+    }
   }
 
   Future<void> _onMenuSelected(BuildContext context, String value) async {
@@ -265,16 +261,6 @@ class _HabitCardState extends ConsumerState<_HabitCard> {
         if (mounted) widget.onChanged();
       }
     }
-  }
-
-  Future<void> _onDayTap(BuildContext context, DateTime date) async {
-    final isDone = widget.habitService.isDateCompleted(widget.habit.habitId, date);
-    if (isDone) {
-      await widget.habitService.uncheckIn(widget.habit.habitId, date);
-    } else {
-      await widget.habitService.checkIn(widget.habit.habitId, date);
-    }
-    if (mounted) setState(() {});
   }
 
   Color _hexToColor(String hex) {
@@ -320,7 +306,7 @@ class _StreakFireState extends State<_StreakFire>
   @override
   void didUpdateWidget(covariant _StreakFire oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.justIncreased && !_controller.isAnimating) {
+    if (widget.justIncreased && !oldWidget.justIncreased && !_controller.isAnimating) {
       _controller.forward().then((_) {
         _controller.reverse();
         widget.onAnimationComplete();
