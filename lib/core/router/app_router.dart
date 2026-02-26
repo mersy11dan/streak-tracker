@@ -54,9 +54,9 @@ class MainScaffold extends StatelessWidget {
         onDestinationSelected: (index) => _onItemTapped(context, index),
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+            icon: Icon(Icons.local_fire_department_outlined),
+            selectedIcon: Icon(Icons.local_fire_department),
+            label: 'Habits',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

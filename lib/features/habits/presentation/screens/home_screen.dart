@@ -16,15 +16,23 @@ class HomeScreen extends ConsumerWidget {
     ref.watch(habitRefreshProvider);
     final habitService = ref.read(habitServiceProvider);
     final habits = habitService.getActiveHabits();
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Streak Tracker'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.local_fire_department, color: cs.primary),
+            const SizedBox(width: 8),
+            const Text('Streak Tracker'),
+          ],
+        ),
       ),
       body: habits.isEmpty
           ? _EmptyState(onAdd: () => context.push('/habits/create'))
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: habits.length,
               itemBuilder: (context, i) {
                 final habit = habits[i];
@@ -36,10 +44,9 @@ class HomeScreen extends ConsumerWidget {
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/habits/create'),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Habit'),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -52,16 +59,24 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.auto_awesome,
-              size: 80,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: cs.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.local_fire_department,
+                size: 48,
+                color: cs.onPrimaryContainer,
+              ),
             ),
             const SizedBox(height: 24),
             Text(
@@ -73,14 +88,14 @@ class _EmptyState extends StatelessWidget {
               'Add your first habit to start building streaks',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                    color: cs.onSurfaceVariant,
                   ),
             ),
             const SizedBox(height: 32),
             FilledButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              label: const Text('Add Habit'),
+              label: const Text('Create Habit'),
             ),
           ],
         ),
@@ -112,25 +127,32 @@ class _HabitCardState extends ConsumerState<_HabitCard> {
   Widget build(BuildContext context) {
     final habit = widget.habit;
     final color = _hexToColor(habit.colorHex);
+    final cs = Theme.of(context).colorScheme;
     final completedKeys = widget.habitService.getCompletedDateKeys(habit.habitId);
     final todayDate = today();
     final isTodayDone = widget.habitService.isDateCompleted(habit.habitId, todayDate);
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header row
             Row(
               children: [
                 Container(
-                  width: 4,
+                  width: 40,
                   height: 40,
                   decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.track_changes,
                     color: color,
-                    borderRadius: BorderRadius.circular(2),
+                    size: 22,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -140,60 +162,92 @@ class _HabitCardState extends ConsumerState<_HabitCard> {
                     children: [
                       Text(
                         habit.title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          _StreakFire(
-                            streak: habit.currentStreak,
-                            isTodayDone: isTodayDone,
-                            justIncreased: _justIncreased,
-                            onAnimationComplete: () =>
-                                setState(() => _justIncreased = false),
-                          ),
-                          if (habit.freezeTokensRemaining > 0) ...[
-                            const SizedBox(width: 8),
-                            _StreakChip(
-                              label: '${habit.freezeTokensRemaining} freeze',
-                              color: Colors.amber,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
                             ),
-                          ],
-                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        habit.targetType == 'ongoing' ? 'Ongoing' : 'Fixed duration',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
                       ),
                     ],
                   ),
                 ),
+                _StreakFire(
+                  streak: habit.currentStreak,
+                  isTodayDone: isTodayDone,
+                  justIncreased: _justIncreased,
+                  onAnimationComplete: () =>
+                      setState(() => _justIncreased = false),
+                ),
+                const SizedBox(width: 4),
                 PopupMenuButton<String>(
                   onSelected: (v) => _onMenuSelected(context, v),
                   itemBuilder: (ctx) => [
-                    const PopupMenuItem(value: 'archive', child: Text('Archive habit')),
-                    const PopupMenuItem(value: 'delete', child: Text('Delete habit')),
+                    const PopupMenuItem(value: 'archive', child: Text('Archive')),
+                    const PopupMenuItem(value: 'delete', child: Text('Delete')),
                   ],
-                  child: const Icon(Icons.more_vert),
+                  icon: Icon(Icons.more_vert, color: cs.onSurfaceVariant),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            CheckboxListTile(
-              value: isTodayDone,
-              onChanged: isTodayDone
-                  ? (v) => _uncheckToday(context)
-                  : (v) => _checkInToday(context),
-              controlAffinity: ListTileControlAffinity.leading,
-              title: Text(
-                'Done today',
-                style: TextStyle(
-                  decoration: isTodayDone ? TextDecoration.lineThrough : null,
-                  color: isTodayDone
-                      ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)
-                      : null,
+            Divider(height: 1, color: cs.outlineVariant),
+            const SizedBox(height: 12),
+
+            // Checkbox row
+            Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: isTodayDone,
+                    onChanged: isTodayDone
+                        ? (v) => _uncheckToday(context)
+                        : (v) => _checkInToday(context),
+                  ),
                 ),
-              ),
-              contentPadding: EdgeInsets.zero,
-              dense: true,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Done today',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          decoration: isTodayDone ? TextDecoration.lineThrough : null,
+                          color: isTodayDone ? cs.onSurfaceVariant : cs.onSurface,
+                        ),
+                  ),
+                ),
+                if (habit.freezeTokensRemaining > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: cs.tertiaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.ac_unit, size: 14, color: cs.onTertiaryContainer),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${habit.freezeTokensRemaining}',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: cs.onTertiaryContainer,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 16),
+
+            // Heatmap
             GithubHeatmapGrid(
               completedDateKeys: completedKeys,
               habitColorHex: habit.colorHex,
@@ -228,7 +282,7 @@ class _HabitCardState extends ConsumerState<_HabitCard> {
         builder: (ctx) => AlertDialog(
           title: const Text('Archive habit?'),
           content: const Text(
-            'This habit will move to your profile history. You can still see your streak.',
+            'This habit will move to your profile history.',
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
@@ -250,7 +304,7 @@ class _HabitCardState extends ConsumerState<_HabitCard> {
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
               child: const Text('Delete'),
             ),
           ],
@@ -337,7 +391,7 @@ class _StreakFireState extends State<_StreakFire>
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: fireColor.withValues(alpha: 0.2),
+          color: fireColor.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -345,44 +399,19 @@ class _StreakFireState extends State<_StreakFire>
           children: [
             Icon(
               Icons.local_fire_department,
-              size: 18,
+              size: 16,
               color: fireColor,
             ),
             const SizedBox(width: 4),
             Text(
-              '${widget.streak} day streak',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              '${widget.streak}',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: fireColor,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _StreakChip extends StatelessWidget {
-  const _StreakChip({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
       ),
     );
   }

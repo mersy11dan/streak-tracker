@@ -77,7 +77,19 @@ class GithubHeatmapGrid extends StatelessWidget {
         cellSize: cellSize,
         cellSpacing: spacing,
         weekdayLabel: WeekdayLabel.full,
+        weekdayTextStyle: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          height: 1.0,
+        ),
+        monthTextStyle: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         heatmapColor: _hexToHeatmapColor(habitColorHex),
+        padding: EdgeInsets.zero,
       ),
     );
   }

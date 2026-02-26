@@ -18,7 +18,7 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
   final _titleController = TextEditingController();
   String _targetType = 'ongoing';
   int _durationDays = 30;
-  String _selectedColor = '#6366F1';
+  String _selectedColor = '#6750A4';
   bool _saving = false;
 
   @override
@@ -29,6 +29,8 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('New Habit'),
@@ -42,24 +44,38 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
+            // Title input
             TextFormField(
               controller: _titleController,
               decoration: const InputDecoration(
                 labelText: 'Habit name',
                 hintText: 'e.g. Read 10 pages, Code 1 hour',
+                prefixIcon: Icon(Icons.edit_outlined),
               ),
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
             ),
             const SizedBox(height: 24),
+
+            // Duration section
             Text(
               'Duration',
-              style: Theme.of(context).textTheme.titleSmall,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
             const SizedBox(height: 8),
             SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: 'ongoing', label: Text('Ongoing')),
-                ButtonSegment(value: 'fixedDuration', label: Text('Fixed')),
+                ButtonSegment(
+                  value: 'ongoing',
+                  label: Text('Ongoing'),
+                  icon: Icon(Icons.all_inclusive),
+                ),
+                ButtonSegment(
+                  value: 'fixedDuration',
+                  label: Text('Fixed'),
+                  icon: Icon(Icons.timer_outlined),
+                ),
               ],
               selected: {_targetType},
               onSelectionChanged: (s) => setState(() => _targetType = s.first),
@@ -67,9 +83,12 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
             if (_targetType == 'fixedDuration') ...[
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
-                value: _durationDays,
-                decoration: const InputDecoration(labelText: 'Duration'),
-                items: [
+                initialValue: _durationDays,
+                decoration: const InputDecoration(
+                  labelText: 'Duration',
+                  prefixIcon: Icon(Icons.calendar_today_outlined),
+                ),
+                items: const [
                   DropdownMenuItem(value: 7, child: Text('7 days (1 week)')),
                   DropdownMenuItem(value: 15, child: Text('15 days')),
                   DropdownMenuItem(value: 30, child: Text('30 days (1 month)')),
@@ -82,9 +101,13 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
               ),
             ],
             const SizedBox(height: 24),
+
+            // Color section
             Text(
               'Color',
-              style: Theme.of(context).textTheme.titleSmall,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
             const SizedBox(height: 8),
             InkWell(
@@ -93,22 +116,21 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-                  ),
+                  color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                  border: Border.all(color: cs.outlineVariant),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
                     Container(
-                      width: 32,
-                      height: 32,
+                      width: 36,
+                      height: 36,
                       decoration: BoxDecoration(
                         color: _hexToColor(_selectedColor),
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: _hexToColor(_selectedColor).withValues(alpha: 0.4),
+                            color: _hexToColor(_selectedColor).withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -116,21 +138,32 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text('Tap to change color'),
+                    Expanded(
+                      child: Text(
+                        'Tap to choose color',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                      ),
+                    ),
+                    Icon(Icons.palette_outlined, color: cs.onSurfaceVariant),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 32),
-            FilledButton(
+
+            // Submit button
+            FilledButton.icon(
               onPressed: _saving ? null : _save,
-              child: _saving
+              icon: _saving
                   ? const SizedBox(
-                      height: 20,
-                      width: 20,
+                      height: 18,
+                      width: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Create Habit'),
+                  : const Icon(Icons.check),
+              label: const Text('Create Habit'),
             ),
           ],
         ),

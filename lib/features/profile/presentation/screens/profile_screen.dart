@@ -15,78 +15,166 @@ class ProfileScreen extends ConsumerWidget {
     final profile = ref.watch(profileRepositoryProvider).getOrCreateProfile();
     final activeHabits = habitService.getActiveHabits();
     final archivedHabits = habitService.getArchivedHabits();
+    final cs = Theme.of(context).colorScheme;
+
+    final totalBestStreak = [...activeHabits, ...archivedHabits]
+        .fold<int>(0, (max, h) => h.bestStreak > max ? h.bestStreak : max);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
+          // Profile header
           Card(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Row(
+              child: Column(
                 children: [
                   CircleAvatar(
-                    radius: 32,
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    radius: 36,
+                    backgroundColor: cs.primaryContainer,
                     child: Text(
                       profile.displayName.isNotEmpty
                           ? profile.displayName[0].toUpperCase()
                           : 'S',
-                      style: Theme.of(context).textTheme.headlineMedium,
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            color: cs.onPrimaryContainer,
+                          ),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          profile.displayName,
-                          style: Theme.of(context).textTheme.titleLarge,
+                  const SizedBox(height: 12),
+                  Text(
+                    profile.displayName,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Member since ${DateFormat('MMM yyyy').format(profile.createdAt)}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
                         ),
-                        Text(
-                          '${activeHabits.length} active habits',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                              ),
-                        ),
-                      ],
-                    ),
                   ),
                 ],
               ),
             ),
           ),
+          const SizedBox(height: 12),
+
+          // Stats row
+          Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  label: 'Active',
+                  value: '${activeHabits.length}',
+                  icon: Icons.track_changes,
+                  color: cs.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  label: 'Archived',
+                  value: '${archivedHabits.length}',
+                  icon: Icons.inventory_2_outlined,
+                  color: cs.tertiary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  label: 'Best Streak',
+                  value: '$totalBestStreak',
+                  icon: Icons.local_fire_department,
+                  color: Colors.orange,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
+
+          // Active habits
           Text(
             'Active habits',
-            style: Theme.of(context).textTheme.titleMedium,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 8),
           if (activeHabits.isEmpty)
-            const SizedBox(
-              height: 60,
-              child: Center(child: Text('No active habits')),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text('No active habits', style: TextStyle(color: cs.onSurfaceVariant)),
+              ),
             )
           else
             ...activeHabits.map((h) => _HabitSummaryTile(habit: h)),
           const SizedBox(height: 24),
+
+          // Archived habits
           Text(
             'Archived habits',
-            style: Theme.of(context).textTheme.titleMedium,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 8),
           if (archivedHabits.isEmpty)
-            const SizedBox(
-              height: 60,
-              child: Center(child: Text('No archived habits yet')),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text('No archived habits yet', style: TextStyle(color: cs.onSurfaceVariant)),
+              ),
             )
           else
             ...archivedHabits.map((h) => _ArchivedHabitTile(habit: h)),
         ],
+      ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -100,20 +188,40 @@ class _HabitSummaryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _hexToColor(habit.colorHex);
+    final cs = Theme.of(context).colorScheme;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: Container(
-          width: 8,
+          width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(4),
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
           ),
+          child: Icon(Icons.track_changes, color: color, size: 20),
         ),
         title: Text(habit.title),
-        subtitle: Text('${habit.currentStreak} day streak'),
-        trailing: Icon(habit.freezeTokensRemaining > 0 ? Icons.ac_unit : null),
+        subtitle: Row(
+          children: [
+            const Icon(Icons.local_fire_department, size: 14, color: Colors.orange),
+            const SizedBox(width: 4),
+            Text('${habit.currentStreak} day streak'),
+          ],
+        ),
+        trailing: habit.freezeTokensRemaining > 0
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: cs.tertiaryContainer,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '${habit.freezeTokensRemaining}',
+                  style: TextStyle(fontSize: 11, color: cs.onTertiaryContainer),
+                ),
+              )
+            : null,
       ),
     );
   }
@@ -141,12 +249,13 @@ class _ArchivedHabitTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: Container(
-          width: 8,
+          width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(4),
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
           ),
+          child: Icon(Icons.inventory_2_outlined, color: color.withValues(alpha: 0.5), size: 20),
         ),
         title: Text(habit.title),
         subtitle: Text('$start – $end · Best: ${habit.bestStreak} days'),
